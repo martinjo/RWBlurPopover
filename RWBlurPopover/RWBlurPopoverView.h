@@ -10,8 +10,9 @@
 
 @interface RWBlurPopoverView : UIView
 
+
 @property (nonatomic, strong) UIView *blurView;
-@property (nonatomic, weak) UIView *container;
+@property (nonatomic, strong) UIView *container;
 @property (nonatomic, copy) dispatch_block_t dismissalBlock;
 
 @property (nonatomic, assign, getter = isThrowingGestureEnabled) BOOL throwingGestureEnabled;

@@ -6,6 +6,7 @@
 //  Copyright (c) 2014年 Zhang Bin. All rights reserved.
 //
 
+#import <GPUImage.h>
 #import "RWBlurPopoverView.h"
 
 static CGFloat angleOfView(UIView *view) {
@@ -24,6 +25,9 @@ typedef NS_ENUM(NSInteger, RWBlurPopoverViewState) {
 };
 
 @interface RWBlurPopoverView ()
+
+@property (nonatomic, strong) UIImage *origImage;
+@property (nonatomic, strong) UIImageView *blurredImageView;
 
 @property (nonatomic, strong) UIView *contentView;
 @property (nonatomic, strong) UIView *backgroundTappingView;
@@ -54,25 +58,15 @@ typedef NS_ENUM(NSInteger, RWBlurPopoverViewState) {
         self.contentSize = contentSize;
         self.state = RWBlurPopoverViewStateInitial;
         
-        if (NSClassFromString(@"UIVisualEffectView") != nil) {
-            UIVisualEffectView *v = [[UIVisualEffectView alloc] initWithEffect:[UIBlurEffect effectWithStyle:UIBlurEffectStyleLight]];
-            self.blurView = v;
-            self.container = v.contentView;
-        } else {
-            UIToolbar *toolbar = [[UIToolbar alloc] initWithFrame:self.bounds];
-            toolbar.barStyle = UIBarStyleBlack;
-            self.blurView = toolbar;
-            self.container = toolbar;
-        }
-        
-        [self addSubview:self.blurView];
-        
+        [self prepareBlurredImage];
+        [self presentBlurredViewAnimated:YES];
+      
         self.backgroundTappingView = [[UIView alloc] init];
         self.backgroundTappingView.backgroundColor = [UIColor clearColor];
         [self.backgroundTappingView addGestureRecognizer:self.backgroundTapGesture];
         
-        [self.container addSubview:self.backgroundTappingView];
-        [self.container addSubview:self.contentView];
+        [self addSubview:self.backgroundTappingView];
+        [self addSubview:self.contentView];
         
         [self configureViewForState:self.state];
         
@@ -86,7 +80,7 @@ typedef NS_ENUM(NSInteger, RWBlurPopoverViewState) {
         self.contentView.transform = CGAffineTransformIdentity;
         // self.contentView.alpha = 1.0;
     } else  {
-        CGFloat offset = (CGRectGetHeight(self.container.bounds) + self.contentSize.height) / 2.0;
+        CGFloat offset = (CGRectGetHeight(self.bounds) + self.contentSize.height) / 2.0;
         self.contentView.transform = CGAffineTransformMakeTranslation(0, -offset);
         // self.contentView.alpha = 0;
     }
@@ -98,11 +92,11 @@ typedef NS_ENUM(NSInteger, RWBlurPopoverViewState) {
     [super layoutSubviews];
     
     self.blurView.frame = self.bounds;
-    self.backgroundTappingView.frame = self.container.bounds;
+    self.backgroundTappingView.frame = self.bounds;
     
     if (self.state <= RWBlurPopoverViewStateShowing) {
-        self.contentView.frame = CGRectMake((CGRectGetWidth(self.container.bounds) - self.contentSize.width) / 2.0,
-                                            (CGRectGetHeight(self.container.bounds) - self.contentSize.height) / 2.0,
+        self.contentView.frame = CGRectMake((CGRectGetWidth(self.bounds) - self.contentSize.width) / 2.0,
+                                            (CGRectGetHeight(self.bounds) - self.contentSize.height) / 2.0,
                                             self.contentSize.width,
                                             self.contentSize.height
                                             );
@@ -125,7 +119,7 @@ typedef NS_ENUM(NSInteger, RWBlurPopoverViewState) {
         return;
     }
     self.state = RWBlurPopoverViewStateAnimatedDismissing;
-    self.animator = [[UIDynamicAnimator alloc] initWithReferenceView:self.container];
+    self.animator = [[UIDynamicAnimator alloc] initWithReferenceView:self];
     
     UIGravityBehavior *gravityBehavior = [[UIGravityBehavior alloc] initWithItems:@[self.contentView]];
     gravityBehavior.magnitude = 4;
@@ -147,7 +141,7 @@ typedef NS_ENUM(NSInteger, RWBlurPopoverViewState) {
     __weak typeof(self) weakSelf = self;
 
     itemBehavior.action = ^{
-        if (!CGRectIntersectsRect(self.container.bounds, self.contentView.frame)) {
+        if (!CGRectIntersectsRect(self.bounds, self.contentView.frame)) {
             typeof(weakSelf) strongSelf = weakSelf;
             [strongSelf.animator removeAllBehaviors];
             strongSelf.animator = nil;
@@ -165,6 +159,8 @@ typedef NS_ENUM(NSInteger, RWBlurPopoverViewState) {
             });
         }
     };
+    
+    
 
 }
 
@@ -231,6 +227,11 @@ typedef NS_ENUM(NSInteger, RWBlurPopoverViewState) {
 
 - (void)updateInteractiveTransitionWithTouchLocation:(CGPoint)location {
     self.attachmentBehavior.anchorPoint = location;
+    CGFloat distance = hypotf(self.interactiveStartPoint.x - location.x, self.interactiveStartPoint.y - location.y);
+    CGRect screenRect = [[UIScreen mainScreen] bounds];
+    CGFloat screenWidth = screenRect.size.width;
+    if(distance>0)
+        self.blurredImageView.alpha = 1-distance/screenWidth    ;
 }
 
 - (void)finishInteractiveTransitionWithTouchLocation:(CGPoint)location velocity:(CGPoint)velocity {
@@ -260,6 +261,7 @@ typedef NS_ENUM(NSInteger, RWBlurPopoverViewState) {
         }
     };
     [self.animator addBehavior:itemBehavior];
+    [self removeBlurredViewAnimated:YES];
 }
 
 - (void)cancelInteractiveTransitionWithTouchLocation:(CGPoint)location {
@@ -268,6 +270,7 @@ typedef NS_ENUM(NSInteger, RWBlurPopoverViewState) {
         self.contentView.transform = CGAffineTransformIdentity;
         self.state = RWBlurPopoverViewStateShowing;
         [self layoutSubviews];
+        self.blurredImageView.alpha = 1.;
         
     } completion:^(BOOL finished) {
     }];
@@ -302,5 +305,84 @@ typedef NS_ENUM(NSInteger, RWBlurPopoverViewState) {
 - (void)handleBackgroundTapGesture:(UITapGestureRecognizer *)gr {
     [self animateDismissalWithCompletion:nil];
 }
+
+- (UIImage *)imageFromView:(UIView *)v
+{
+    CGSize size = v.bounds.size;
+    
+    CGFloat scale = [UIScreen mainScreen].scale;
+    size.width *= scale;
+    size.height *= scale;
+    
+    UIGraphicsBeginImageContextWithOptions(size, NO, [UIScreen mainScreen].scale);
+    
+    CGContextRef ctx = UIGraphicsGetCurrentContext();
+    
+    CGContextScaleCTM(ctx, scale, scale);
+    
+    [v.layer renderInContext:ctx];
+    
+    UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    
+    return image;
+}
+
+- (void)prepareBlurredImage
+{
+    UIViewController *rootViewController = [UIApplication sharedApplication].keyWindow.rootViewController;
+
+    self.origImage = [self imageFromView:rootViewController.view];
+    
+    self.blurredImageView = [[UIImageView alloc] initWithFrame:rootViewController.view.bounds];
+    self.blurredImageView.backgroundColor = [UIColor clearColor];
+    self.blurredImageView.alpha = 0;
+    [self addSubview:self.blurredImageView];
+}
+
+- (void)presentBlurredViewAnimated:(BOOL)animated
+{
+    __weak typeof(self) weakSelf = self;
+   // dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        NSLog(@"before filter");
+        GPUImageGaussianBlurFilter *filter = [[GPUImageGaussianBlurFilter alloc] init];
+        filter.blurRadiusInPixels = [UIScreen mainScreen].scale * 8;
+        weakSelf.blurredImageView.image = [filter imageByFilteringImage:weakSelf.origImage];
+        NSLog(@"after filter");
+        weakSelf.origImage = nil;
+     //   dispatch_sync(dispatch_get_main_queue(), ^{
+            if (animated)
+            {
+                [UIView animateWithDuration:0.4 animations:^{
+                    weakSelf.blurredImageView.alpha = 1.0;
+                } completion:^(BOOL finished) {
+                }];
+            }
+            else
+            {
+                weakSelf.blurredImageView.alpha = 1.0;
+            }
+       // });
+    //});
+}
+
+- (void)removeBlurredViewAnimated:(BOOL)animated
+{
+    if (!animated)
+    {
+        [self.blurredImageView removeFromSuperview];
+        self.blurredImageView = nil;
+    }
+    else
+    {
+        [UIView animateWithDuration:0.4 animations:^{
+            self.blurredImageView.alpha = 0;
+        } completion:^(BOOL finished) {
+            [self.blurredImageView removeFromSuperview];
+            self.blurredImageView = nil;
+        }];
+    }
+}
+
 
 @end
