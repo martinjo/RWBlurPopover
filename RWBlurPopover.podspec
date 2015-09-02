@@ -23,7 +23,8 @@ Pod::Spec.new do |s|
 
   s.source_files  = "RWBlurPopover", "RWBlurPopover/**/*.{h,m}"
 
+  s.dependency = 'GPUImage'
+
   s.requires_arc = true
-  s.dependency = "GPUImage"
 
 end
