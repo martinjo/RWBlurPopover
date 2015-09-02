@@ -55,7 +55,7 @@ typedef NS_ENUM(NSInteger, RWBlurPopoverViewState) {
         self.state = RWBlurPopoverViewStateInitial;
         
         if (NSClassFromString(@"UIVisualEffectView") != nil) {
-            UIVisualEffectView *v = [[UIVisualEffectView alloc] initWithEffect:[UIBlurEffect effectWithStyle:UIBlurEffectStyleDark]];
+            UIVisualEffectView *v = [[UIVisualEffectView alloc] initWithEffect:[UIBlurEffect effectWithStyle:UIBlurEffectStyleLight]];
             self.blurView = v;
             self.container = v.contentView;
         } else {
@@ -160,6 +160,8 @@ typedef NS_ENUM(NSInteger, RWBlurPopoverViewState) {
                 if (completion) {
                     completion();
                 }
+                
+                
             });
         }
     };

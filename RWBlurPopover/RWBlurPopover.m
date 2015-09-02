@@ -103,6 +103,9 @@ static void swizzleMethod(Class class, SEL originSelector, SEL swizzledSelector)
         [strongSelf.contentViewController willMoveToParentViewController:nil];
         [strongSelf.popoverView removeFromSuperview];
         [strongSelf.contentViewController removeFromParentViewController];
+       
+        if(strongSelf.dismissalBlock)
+            strongSelf.dismissalBlock();
         
         strongSelf.popoverView = nil;
         strongSelf.contentViewController.RWBlurPopover_associatedPopover = nil;
