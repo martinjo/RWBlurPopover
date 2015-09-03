@@ -343,17 +343,19 @@ typedef NS_ENUM(NSInteger, RWBlurPopoverViewState) {
 - (void)presentBlurredViewAnimated:(BOOL)animated
 {
     __weak typeof(self) weakSelf = self;
-   // dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         NSLog(@"before filter");
         GPUImageGaussianBlurFilter *filter = [[GPUImageGaussianBlurFilter alloc] init];
-        filter.blurRadiusInPixels = [UIScreen mainScreen].scale * 8;
-        weakSelf.blurredImageView.image = [filter imageByFilteringImage:weakSelf.origImage];
+        filter.blurRadiusInPixels = [UIScreen mainScreen].scale * 12;
+        self.origImage = [filter imageByFilteringImage:weakSelf.origImage];
         NSLog(@"after filter");
-        weakSelf.origImage = nil;
-     //   dispatch_sync(dispatch_get_main_queue(), ^{
+    
+        dispatch_sync(dispatch_get_main_queue(), ^{
             if (animated)
             {
-                [UIView animateWithDuration:0.4 animations:^{
+                self.blurredImageView.image = self.origImage;
+                self.origImage = nil;
+                [UIView animateWithDuration:0.2 animations:^{
                     weakSelf.blurredImageView.alpha = 1.0;
                 } completion:^(BOOL finished) {
                 }];
@@ -362,8 +364,8 @@ typedef NS_ENUM(NSInteger, RWBlurPopoverViewState) {
             {
                 weakSelf.blurredImageView.alpha = 1.0;
             }
-       // });
-    //});
+        });
+    });
 }
 
 - (void)removeBlurredViewAnimated:(BOOL)animated

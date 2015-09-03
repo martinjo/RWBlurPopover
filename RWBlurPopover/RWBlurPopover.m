@@ -63,6 +63,7 @@ static void swizzleMethod(Class class, SEL originSelector, SEL swizzledSelector)
         self.tapBlurToDismissEnabled = YES;
         
         self.contentViewController.RWBlurPopover_associatedPopover = self;
+        self.blurRadius = 12;
     }
     return self;
 }
@@ -93,6 +94,7 @@ static void swizzleMethod(Class class, SEL originSelector, SEL swizzledSelector)
     self.popoverView.translatesAutoresizingMaskIntoConstraints = YES;
     self.popoverView.throwingGestureEnabled = self.throwingGestureEnabled;
     self.popoverView.tapBlurToDismissEnabled = self.tapBlurToDismissEnabled;
+    self.popoverView.blurRadius = self.blurRadius;
     
     [self.presentingViewController addChildViewController:self.contentViewController];
     [self.presentingViewController.view addSubview:self.popoverView];

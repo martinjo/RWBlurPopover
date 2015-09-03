@@ -10,7 +10,7 @@
 
 @interface RWBlurPopoverView : UIView
 
-
+@property (nonatomic, assign) int blurRadius;
 @property (nonatomic, strong) UIView *blurView;
 @property (nonatomic, strong) UIView *container;
 @property (nonatomic, copy) dispatch_block_t dismissalBlock;
