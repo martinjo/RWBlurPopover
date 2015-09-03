@@ -6,7 +6,7 @@
 //  Copyright (c) 2014年 Zhang Bin. All rights reserved.
 //
 
-#import <GPUImage.h>
+#import "GPUImage.h"
 #import "RWBlurPopoverView.h"
 
 static CGFloat angleOfView(UIView *view) {
