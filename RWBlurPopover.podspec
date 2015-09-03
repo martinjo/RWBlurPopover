@@ -19,11 +19,11 @@ Pod::Spec.new do |s|
 
   s.ios.deployment_target = "7.0"
 
+#  s.dependency = 'GPUImage'
+
   s.source       = { :git => "https://github.com/eternityz/RWBlurPopover.git", :tag => "3.1.0" }
 
   s.source_files  = "RWBlurPopover", "RWBlurPopover/**/*.{h,m}"
-
-  s.dependency = 'GPUImage'
 
   s.requires_arc = true
 
