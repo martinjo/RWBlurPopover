@@ -346,7 +346,8 @@ typedef NS_ENUM(NSInteger, RWBlurPopoverViewState) {
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         NSLog(@"before filter");
         GPUImageGaussianBlurFilter *filter = [[GPUImageGaussianBlurFilter alloc] init];
-        filter.blurRadiusInPixels = [UIScreen mainScreen].scale * 12;
+        [filter forceProcessingAtSize:CGSizeMake(self.origImage.size.width/2.0,self.origImage.size.height/2.0)];
+        filter.blurRadiusInPixels = [UIScreen mainScreen].scale * self.blurRadius;
         self.origImage = [filter imageByFilteringImage:weakSelf.origImage];
         NSLog(@"after filter");
     
