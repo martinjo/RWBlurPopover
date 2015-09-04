@@ -63,7 +63,7 @@ static void swizzleMethod(Class class, SEL originSelector, SEL swizzledSelector)
         self.tapBlurToDismissEnabled = YES;
         
         self.contentViewController.RWBlurPopover_associatedPopover = self;
-        self.blurRadius = 12;
+        self.blurRadius = 100.0;
     }
     return self;
 }

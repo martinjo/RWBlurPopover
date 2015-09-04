@@ -6,8 +6,8 @@
 //  Copyright (c) 2014年 Zhang Bin. All rights reserved.
 //
 
-#import "GPUImage.h"
 #import "RWBlurPopoverView.h"
+#import "SABlurImageView.h"
 
 static CGFloat angleOfView(UIView *view) {
     // http://stackoverflow.com/a/2051861/1271826
@@ -27,7 +27,9 @@ typedef NS_ENUM(NSInteger, RWBlurPopoverViewState) {
 @interface RWBlurPopoverView ()
 
 @property (nonatomic, strong) UIImage *origImage;
-@property (nonatomic, strong) UIImageView *blurredImageView;
+//@property (nonatomic, strong) UIImageView *blurredImageView;
+@property (nonatomic, strong) SABlurImageView *blurredImageView;
+@property (nonatomic, readwrite) float blur;
 
 @property (nonatomic, strong) UIView *contentView;
 @property (nonatomic, strong) UIView *backgroundTappingView;
@@ -78,11 +80,9 @@ typedef NS_ENUM(NSInteger, RWBlurPopoverViewState) {
 - (void)configureViewForState:(RWBlurPopoverViewState)state {
     if (state >= RWBlurPopoverViewStateShowing) {
         self.contentView.transform = CGAffineTransformIdentity;
-        // self.contentView.alpha = 1.0;
     } else  {
         CGFloat offset = (CGRectGetHeight(self.bounds) + self.contentSize.height) / 2.0;
         self.contentView.transform = CGAffineTransformMakeTranslation(0, -offset);
-        // self.contentView.alpha = 0;
     }
     
 }
@@ -229,9 +229,9 @@ typedef NS_ENUM(NSInteger, RWBlurPopoverViewState) {
     self.attachmentBehavior.anchorPoint = location;
     CGFloat distance = hypotf(self.interactiveStartPoint.x - location.x, self.interactiveStartPoint.y - location.y);
     CGRect screenRect = [[UIScreen mainScreen] bounds];
-    CGFloat screenWidth = screenRect.size.width;
+    CGFloat screenHeight = screenRect.size.height;
     if(distance>0)
-        self.blurredImageView.alpha = 1-distance/screenWidth    ;
+        [self.blurredImageView blur:distance/screenHeight];
 }
 
 - (void)finishInteractiveTransitionWithTouchLocation:(CGPoint)location velocity:(CGPoint)velocity {
@@ -270,8 +270,7 @@ typedef NS_ENUM(NSInteger, RWBlurPopoverViewState) {
         self.contentView.transform = CGAffineTransformIdentity;
         self.state = RWBlurPopoverViewStateShowing;
         [self layoutSubviews];
-        self.blurredImageView.alpha = 1.;
-        
+        [self.blurredImageView blur:0];
     } completion:^(BOOL finished) {
     }];
 }
@@ -310,15 +309,11 @@ typedef NS_ENUM(NSInteger, RWBlurPopoverViewState) {
 {
     CGSize size = v.bounds.size;
     
-    CGFloat scale = [UIScreen mainScreen].scale;
-    size.width *= scale;
-    size.height *= scale;
-    
     UIGraphicsBeginImageContextWithOptions(size, NO, [UIScreen mainScreen].scale);
     
     CGContextRef ctx = UIGraphicsGetCurrentContext();
     
-    CGContextScaleCTM(ctx, scale, scale);
+    CGContextScaleCTM(ctx, 1, 1);
     
     [v.layer renderInContext:ctx];
     
@@ -334,36 +329,30 @@ typedef NS_ENUM(NSInteger, RWBlurPopoverViewState) {
 
     self.origImage = [self imageFromView:rootViewController.view];
     
-    self.blurredImageView = [[UIImageView alloc] initWithFrame:rootViewController.view.bounds];
-    self.blurredImageView.backgroundColor = [UIColor clearColor];
-    self.blurredImageView.alpha = 0;
+    if(!self.blurredImageView)
+        self.blurredImageView = [[SABlurImageView alloc]initWithImage:self.origImage];
+    else
+        self.blurredImageView.image = self.origImage;
+    
     [self addSubview:self.blurredImageView];
 }
 
 - (void)presentBlurredViewAnimated:(BOOL)animated
 {
+    
     __weak typeof(self) weakSelf = self;
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         NSLog(@"before filter");
-        GPUImageGaussianBlurFilter *filter = [[GPUImageGaussianBlurFilter alloc] init];
-        [filter forceProcessingAtSize:CGSizeMake(self.origImage.size.width/2.0,self.origImage.size.height/2.0)];
-        filter.blurRadiusInPixels = [UIScreen mainScreen].scale * self.blurRadius;
-        self.origImage = [filter imageByFilteringImage:weakSelf.origImage];
-        NSLog(@"after filter");
-    
+        [self.blurredImageView configrationForBlurAnimation:self.blurRadius];
+        
         dispatch_sync(dispatch_get_main_queue(), ^{
             if (animated)
             {
-                self.blurredImageView.image = self.origImage;
-                self.origImage = nil;
-                [UIView animateWithDuration:0.2 animations:^{
-                    weakSelf.blurredImageView.alpha = 1.0;
-                } completion:^(BOOL finished) {
-                }];
+                [self.blurredImageView  startBlurAnimation:0.4f];
             }
             else
             {
-                weakSelf.blurredImageView.alpha = 1.0;
+                [weakSelf.blurredImageView blur:0.0];
             }
         });
     });
@@ -374,15 +363,16 @@ typedef NS_ENUM(NSInteger, RWBlurPopoverViewState) {
     if (!animated)
     {
         [self.blurredImageView removeFromSuperview];
-        self.blurredImageView = nil;
     }
     else
     {
-        [UIView animateWithDuration:0.4 animations:^{
-            self.blurredImageView.alpha = 0;
+        float duration = 1-self.blur*0.4;
+        [UIView animateWithDuration:duration animations:^{
+            [self.blurredImageView blur:1.0];
         } completion:^(BOOL finished) {
-            [self.blurredImageView removeFromSuperview];
-            self.blurredImageView = nil;
+             [UIView animateWithDuration:0.1 animations:^{
+                 self.blurredImageView.alpha = 0;
+             }];
         }];
     }
 }
