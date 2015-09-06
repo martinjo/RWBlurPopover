@@ -8,6 +8,8 @@
 
 @import UIKit;
 
+#import "pop.h"
+
 @interface RWBlurPopoverView : UIView
 
 @property (nonatomic, assign) int blurRadius;

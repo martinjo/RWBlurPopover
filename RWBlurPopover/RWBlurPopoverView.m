@@ -84,9 +84,7 @@ typedef NS_ENUM(NSInteger, RWBlurPopoverViewState) {
         CGFloat offset = (CGRectGetHeight(self.bounds) + self.contentSize.height) / 2.0;
         self.contentView.transform = CGAffineTransformMakeTranslation(0, -offset);
     }
-    
 }
-
 
 - (void)layoutSubviews {
     [super layoutSubviews];
@@ -147,21 +145,9 @@ typedef NS_ENUM(NSInteger, RWBlurPopoverViewState) {
             strongSelf.animator = nil;
             
             strongSelf.state = RWBlurPopoverViewStateDismissed;
-            dispatch_async(dispatch_get_main_queue(), ^{
-                if (self.dismissalBlock) {
-                    self.dismissalBlock();
-                }
-                if (completion) {
-                    completion();
-                }
-                
-                
-            });
         }
     };
-    
-    
-
+    [self removeBlurredViewAnimated:YES];
 }
 
 - (UIPanGestureRecognizer *)panGesture {
@@ -231,7 +217,7 @@ typedef NS_ENUM(NSInteger, RWBlurPopoverViewState) {
     CGRect screenRect = [[UIScreen mainScreen] bounds];
     CGFloat screenHeight = screenRect.size.height;
     if(distance>0)
-        [self.blurredImageView blur:distance/screenHeight];
+        self.blurredImageView.blur = 1.0-distance/screenHeight;
 }
 
 - (void)finishInteractiveTransitionWithTouchLocation:(CGPoint)location velocity:(CGPoint)velocity {
@@ -252,12 +238,6 @@ typedef NS_ENUM(NSInteger, RWBlurPopoverViewState) {
         {
             weakSelf.state = RWBlurPopoverViewStateDismissed;
             [weakSelf.animator removeAllBehaviors];
-            
-            dispatch_async(dispatch_get_main_queue(), ^{
-                if (weakSelf.dismissalBlock) {
-                    weakSelf.dismissalBlock();
-                }
-            });
         }
     };
     [self.animator addBehavior:itemBehavior];
@@ -270,9 +250,9 @@ typedef NS_ENUM(NSInteger, RWBlurPopoverViewState) {
         self.contentView.transform = CGAffineTransformIdentity;
         self.state = RWBlurPopoverViewStateShowing;
         [self layoutSubviews];
-        [self.blurredImageView blur:0];
     } completion:^(BOOL finished) {
     }];
+    [self animateBlur:1.0 duration:0.4];
 }
 
 - (void)handlePanGesture:(UIPanGestureRecognizer *)gr {
@@ -327,12 +307,9 @@ typedef NS_ENUM(NSInteger, RWBlurPopoverViewState) {
 {
     UIViewController *rootViewController = [UIApplication sharedApplication].keyWindow.rootViewController;
 
-    self.origImage = [self imageFromView:rootViewController.view];
+    UIImage *tmp = [self imageFromView:rootViewController.view];
     
-    if(!self.blurredImageView)
-        self.blurredImageView = [[SABlurImageView alloc]initWithImage:self.origImage];
-    else
-        self.blurredImageView.image = self.origImage;
+    self.blurredImageView = [[SABlurImageView alloc]initWithImage:tmp];
     
     [self addSubview:self.blurredImageView];
 }
@@ -348,11 +325,11 @@ typedef NS_ENUM(NSInteger, RWBlurPopoverViewState) {
         dispatch_sync(dispatch_get_main_queue(), ^{
             if (animated)
             {
-                [self.blurredImageView  startBlurAnimation:0.4f];
+                [self animateBlur:1.0 duration:0.4];
             }
             else
             {
-                [weakSelf.blurredImageView blur:0.0];
+                weakSelf.blurredImageView.blur=1.0;
             }
         });
     });
@@ -367,14 +344,58 @@ typedef NS_ENUM(NSInteger, RWBlurPopoverViewState) {
     else
     {
         float duration = 1-self.blur*0.4;
-        [UIView animateWithDuration:duration animations:^{
-            [self.blurredImageView blur:1.0];
-        } completion:^(BOOL finished) {
-             [UIView animateWithDuration:0.1 animations:^{
-                 self.blurredImageView.alpha = 0;
-             }];
-        }];
+        
+        [self animateBlur:0.0 duration:duration completed:^(POPAnimation *anim, BOOL finished)
+         {
+             POPBasicAnimation* fadeoutAnimation = [POPBasicAnimation animationWithPropertyNamed:kPOPViewAlpha];
+             fadeoutAnimation.fromValue = @(self.blurredImageView.alpha);
+             fadeoutAnimation.toValue = @(0.0);
+             fadeoutAnimation.duration = 0.2;
+             fadeoutAnimation.completionBlock =^(POPAnimation *anim, BOOL finished)
+             {
+                 [self.blurredImageView removeFromSuperview];
+                 dispatch_async(dispatch_get_main_queue(), ^{
+                     if (self.dismissalBlock) {
+                         self.dismissalBlock();
+                     }
+                 });
+             };
+             [self.blurredImageView pop_addAnimation:fadeoutAnimation forKey:@"fadeoutAnimation"];
+         }];
     }
+}
+
++(POPAnimatableProperty*)blurProperty
+{
+    return [POPAnimatableProperty propertyWithName:@"blur" initializer:^(POPMutableAnimatableProperty *prop) {
+        // read value
+        prop.readBlock = ^(SABlurImageView *obj, CGFloat values[]) {
+            values[0] = obj.blur;
+        };
+        // write value
+        prop.writeBlock = ^(SABlurImageView *obj, const CGFloat values[]) {
+            obj.blur=values[0];
+        };
+        // dynamics threshold
+        prop.threshold = 0.01;
+    }];
+}
+
+-(void)animateBlur:(float)blur duration:(float)duration
+{
+    [self animateBlur:blur duration:duration completed:nil];
+}
+
+-(void)animateBlur:(float)blur duration:(float)duration completed:(void(^)(POPAnimation *anim, BOOL finished))completed
+{
+    POPBasicAnimation* blurAnimation = [POPBasicAnimation linearAnimation];
+    blurAnimation.property = [RWBlurPopoverView blurProperty];
+    blurAnimation.fromValue = @(self.blurredImageView.blur);
+    blurAnimation.toValue = @(blur);
+    blurAnimation.duration = 0.5;
+    blurAnimation.removedOnCompletion = true;
+    blurAnimation.completionBlock = completed;
+    [self.blurredImageView pop_addAnimation:blurAnimation forKey:@"blurInAnimation"];
 }
 
 
