@@ -19,7 +19,7 @@
 
 /// set to NO if you don't want content view controller to be dissmissed by tap background blur view, default is YES
 @property (nonatomic, assign, getter = isTapBlurToDismissEnabled) BOOL tapBlurToDismissEnabled;
-@property (nonatomic, assign) int blurRadius;
+@property (nonatomic, assign) float blurRadius;
 
 @property (nonatomic, copy) dispatch_block_t dismissalBlock;
 

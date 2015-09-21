@@ -21,8 +21,6 @@ Pod::Spec.new do |s|
 
   s.dependency  "pop"
   
-  s.dependency  "GPUImage"
-
   s.source       = { :git => "https://github.com/eternityz/RWBlurPopover.git", :tag => "3.1.0" }
 
   s.source_files  = "RWBlurPopover", "RWBlurPopover/**/*.{h,m}"
