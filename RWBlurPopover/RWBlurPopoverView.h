@@ -20,7 +20,7 @@
 @property (nonatomic, assign, getter = isThrowingGestureEnabled) BOOL throwingGestureEnabled;
 @property (nonatomic, assign, getter = isTapBlurToDismissEnabled) BOOL tapBlurToDismissEnabled;
 
-- (instancetype)initWithContentView:(UIView *)contentView contentSize:(CGSize)contentSize;
+- (instancetype)initWithContentView:(UIView *)contentView contentSize:(CGSize)contentSize blurRadius:(float)blurRadius;
 
 - (void)animatePresentation;
 - (void)animateDismissalWithCompletion:(dispatch_block_t)completion;

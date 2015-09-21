@@ -27,7 +27,6 @@ typedef NS_ENUM(NSInteger, RWBlurPopoverViewState) {
 @interface RWBlurPopoverView ()
 
 @property (nonatomic, strong) UIImage *origImage;
-//@property (nonatomic, strong) UIImageView *blurredImageView;
 @property (nonatomic, strong) SABlurImageView *blurredImageView;
 @property (nonatomic, readwrite) float blur;
 
@@ -53,12 +52,13 @@ typedef NS_ENUM(NSInteger, RWBlurPopoverViewState) {
 
 @implementation RWBlurPopoverView
 
-- (instancetype)initWithContentView:(UIView *)contentView contentSize:(CGSize)contentSize {
+- (instancetype)initWithContentView:(UIView *)contentView contentSize:(CGSize)contentSize blurRadius:(float)blurRadius  {
     self = [super init];
     if (self) {
         self.contentView = contentView;
         self.contentSize = contentSize;
         self.state = RWBlurPopoverViewStateInitial;
+        self.blurRadius = blurRadius;
         
         [self prepareBlurredImage];
         [self presentBlurredViewAnimated:YES];
@@ -316,7 +316,6 @@ typedef NS_ENUM(NSInteger, RWBlurPopoverViewState) {
 
 - (void)presentBlurredViewAnimated:(BOOL)animated
 {
-    
     __weak typeof(self) weakSelf = self;
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         NSLog(@"before filter");

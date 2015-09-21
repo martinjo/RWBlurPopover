@@ -87,14 +87,13 @@ static void swizzleMethod(Class class, SEL originSelector, SEL swizzledSelector)
     self.presentingViewController = presentingViewController;
     self.presentingViewController.RWBlurPopover_associatedPopover = self;
     
-    self.popoverView = [[RWBlurPopoverView alloc] initWithContentView:self.contentViewController.view contentSize:[self.contentViewController preferredContentSize]];
+    self.popoverView = [[RWBlurPopoverView alloc] initWithContentView:self.contentViewController.view contentSize:[self.contentViewController preferredContentSize] blurRadius:self.blurRadius];
     self.popoverView.throwingGestureEnabled = self.throwingGestureEnabled;
     self.popoverView.frame = self.presentingViewController.view.bounds;
     self.popoverView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     self.popoverView.translatesAutoresizingMaskIntoConstraints = YES;
     self.popoverView.throwingGestureEnabled = self.throwingGestureEnabled;
     self.popoverView.tapBlurToDismissEnabled = self.tapBlurToDismissEnabled;
-    self.popoverView.blurRadius = self.blurRadius;
     
     [self.presentingViewController addChildViewController:self.contentViewController];
     [self.presentingViewController.view addSubview:self.popoverView];
